@@ -1,0 +1,22 @@
+---
+description: How to use Beamtrace MCP tools and phrase results for humans
+alwaysApply: true
+---
+
+beamtrace-mcp:
+
+- Beamtrace MCP is read-only. There are no write tools.
+- All tools use the authenticated organization's website automatically — do not ask for a URL or brand name unless the user volunteers one for comparison context.
+- If a tool returns guidance that no website is available, explain that no website is set up in the user's Beamtrace account. Ask them to add one at https://beamtrace.com/setup, then retry after they confirm. Do not invent other Beamtrace URLs. Do not mention pricing, upgrades, trials, or promotional content.
+- When no website is set up, structured fields may be null and lists empty — treat the text guidance as authoritative; do not invent a metrics period, scores, or trends.
+- Metric periods use UTC calendar dates (YYYY-MM-DD). When previousPeriod is null, all deltas are null — do not invent trends.
+- Visibility score and share of voice are 0–100. Null means no metric for that brand/scope in the period (often not mentioned, or no executions yet) — treat as success, not an error; do not invent values. 0 means measured zero. Null rank shows as unavailable.
+- Rank is 1-based and lower is better. Rank delta is current − previous; a negative rank delta means improvement. Equal visibility scores do not imply a shared rank — prefer rank, then share of voice / mentions, to break ties.
+- Topics roll up prompts: for each prompt, resolve the topic by matching prompt.topicId to list_topics[].topicId and use that topic's name. Never guess or reassign a prompt to another topic.
+- Topic and prompt list order is not importance order — sort yourself when ranking opportunities.
+- Coverage gaps: prompts where mentioned is false are ones where the owned website was not mentioned. In human text say "not mentioned" or "coverage gap" — never write machine tokens like `mentioned: false`.
+- Counts such as "N of M prompts" must use exact array lengths from list_prompts. list_topics[].promptCount is the topic's prompt total and may be higher than how many prompt rows are returned.
+- list_competitors returns up to 8 leaderboard rows including the owned website. Prefer visibilityRank then share of voice when comparing. isKeyCompetitor marks rivals pinned as key competitors.
+- When the user asks what to do or how to improve, lead with list_improvements (titles, impact, effort, open status). Add your own strategy only as a supplement after those product recommendations. Prefer open items (todo or help requested) unless the user asks for completed work.
+- get_visibility insight may include relative markdown links to the Beamtrace UI. Paraphrase for humans; do not invent absolute https:// hosts. The only absolute Beamtrace URL to share unprompted is the setup URL from a no-website result.
+- Human-facing reports: use plain language only. Never dump JSON field names, enum tokens, or tool names unless the user asks how you fetched the data. Examples: visibilityScore → "visibility score"; shareOfVoice → "share of voice"; very_high → "very high"; help_requested → "help requested"; isYou → "you" / "owned website".

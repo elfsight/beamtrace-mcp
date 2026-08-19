@@ -1,0 +1,14 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "com.beamtrace/mcp",
+  "title": "Beamtrace",
+  "description": "Read-only AI visibility for your website: scores, topics, prompts, competitors, and content improvements. Authenticate with your Beamtrace account; the organization's website is resolved automatically.",
+  "version": "1.0.0",
+  "websiteUrl": "https://beamtrace.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://beamtrace.com/api/mcp"
+    }
+  ]
+}

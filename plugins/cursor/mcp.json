@@ -1,0 +1,6 @@
+{
+  "beamtrace": {
+    "url": "https://beamtrace.com/api/mcp",
+    "transport": "http"
+  }
+}

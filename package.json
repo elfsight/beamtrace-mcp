@@ -1,0 +1,18 @@
+{
+  "name": "beamtrace-mcp-clients",
+  "private": true,
+  "description": "Beamtrace MCP client distribution packages",
+  "scripts": {
+    "validate": "node scripts/validate-template.mjs",
+    "prepare": "lefthook install || true",
+    "registry:validate": "mcp-publisher validate",
+    "registry:login:dns": "mcp-publisher login dns --domain beamtrace.com",
+    "registry:login:http": "mcp-publisher login http --domain beamtrace.com",
+    "registry:login:github": "mcp-publisher login github",
+    "registry:publish": "mcp-publisher validate && mcp-publisher publish"
+  },
+  "devDependencies": {
+    "lefthook": "^1.11.13"
+  },
+  "packageManager": "pnpm@10.12.1"
+}

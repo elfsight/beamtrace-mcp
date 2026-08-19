@@ -1,0 +1,36 @@
+{
+  "name": "beamtrace",
+  "displayName": "Beamtrace",
+  "version": "1.0.0",
+  "description": "Links Cursor to Beamtrace's MCP server. Your AI agent can cross-check your visibility score, explain a shift, and turn a content gap into a fix ready to paste into your website.",
+  "author": {
+    "name": "Elfsight",
+    "email": "support@elfsight.com",
+    "url": "https://elfsight.com"
+  },
+  "homepage": "https://beamtrace.com",
+  "license": "MIT",
+  "keywords": [
+    "AI visibility",
+    "AI results tracking",
+    "Brand visibility",
+    "Competitive analysis",
+    "Competitive research",
+    "AI search",
+    "Share of voice",
+    "Content optimization",
+    "Content management",
+    "Rank tracking",
+    "GEO",
+    "AEO",
+    "Chatgpt",
+    "Perplexity",
+    "Claude",
+    "Gemini",
+    "LLM",
+    "Website audit",
+    "Marketing",
+    "Analytics"
+  ],
+  "logo": "assets/logo.png"
+}

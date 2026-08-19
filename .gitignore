@@ -1,0 +1,22 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS and editor
+.DS_Store
+*.swp
+*.swo
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+node_modules/
+
+# MCP Registry DNS/HTTP auth keys
+key.pem
+*.pem
+mcp-registry-auth
+package-lock.json
