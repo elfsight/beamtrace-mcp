@@ -1,47 +1,54 @@
-# Beamtrace MCP clients
+# Beamtrace for Cursor
 
-Distribution packages for Beamtrace's remote MCP across agent platforms. Based on [cursor/plugin-template](https://github.com/cursor/plugin-template).
+Cursor plugin that connects to Beamtrace's remote MCP for read-only AI visibility insights.
 
-## Packages
+Also includes [`server.json`](./server.json) for the [MCP Registry](https://modelcontextprotocol.io/registry/about) (remote-only — no npm stub).
 
-| Package | Path | Contents |
-| --- | --- | --- |
-| `beamtrace` | `plugins/cursor` | Cursor Marketplace plugin: remote MCP + rules |
-| MCP Registry | `server.json` | Official registry metadata (remote only — no npm stub) |
+## What's included
 
-More platform stubs (Claude, VS Code, …) can land under `plugins/` later.
+- **MCP**: `https://beamtrace.com/api/mcp` (OAuth; organization's website is resolved automatically)
+- **Rule**: how to interpret metrics and phrase human reports
 
-## Validate (Cursor marketplace layout)
+## Tools
+
+| Tool | Purpose |
+| --- | --- |
+| `get_visibility` | Overall visibility score and insight |
+| `list_topics` | Topic rollups |
+| `list_prompts` | Prompt-level metrics and coverage gaps |
+| `list_competitors` | Visibility leaderboard |
+| `list_improvements` | Prioritized content improvements |
+
+## Validate
 
 ```bash
 pnpm validate
 ```
 
-Pre-commit runs the same check via Lefthook when hooks are installed (`npx lefthook install` after `git init`).
+Pre-commit runs the same check via Lefthook (`pnpm exec lefthook install` after clone).
 
-## MCP Registry (remote server)
-
-Beamtrace MCP is already hosted at `https://beamtrace.com/api/mcp`. The [MCP Registry](https://modelcontextprotocol.io/registry/about) supports **remote-only** entries via `remotes` — you do **not** need an npm/PyPI stub. See [Publishing Remote Servers](https://modelcontextprotocol.io/registry/remote-servers) and the npm-oriented [quickstart](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx) (skip package publish; use `server.json` + `mcp-publisher`).
-
-Install the publisher CLI ([releases](https://github.com/modelcontextprotocol/registry/releases) or `brew install mcp-publisher`).
-
-Namespace `com.beamtrace/mcp` requires **domain auth** (DNS TXT on `beamtrace.com` apex, or HTTP `/.well-known/mcp-registry-auth`). See [Authentication](https://modelcontextprotocol.io/registry/authentication).
+## Local install (dev)
 
 ```bash
-# once: prove domain ownership (DNS or HTTP), then:
+ln -sf "$(pwd)" ~/.cursor/plugins/local/beamtrace
+```
+
+Reload Cursor → Customize → confirm Beamtrace loads → authenticate MCP.
+
+## MCP Registry
+
+Install [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) (`brew install mcp-publisher`).
+
+Namespace `com.beamtrace/mcp` needs **domain auth** for `beamtrace.com` ([docs](https://modelcontextprotocol.io/registry/authentication)):
+
+```bash
 pnpm registry:login:dns   # or registry:login:http
 pnpm registry:validate
 pnpm registry:publish
 ```
 
-If you prefer GitHub auth instead, change `name` in `server.json` to `io.github.<org>/mcp` and use `pnpm registry:login:github`.
+## Auth
 
-Align `server.json` `version` with product MCP `serverInfo.version` when you ship a public protocol change.
+After install, complete Beamtrace sign-in when Cursor prompts. You need a Beamtrace account with a website at [beamtrace.com/setup](https://beamtrace.com/setup).
 
-## Local install (Cursor, dev)
-
-```bash
-ln -sf "$(pwd)/plugins/cursor" ~/.cursor/plugins/local/beamtrace
-```
-
-Reload Cursor → Customize → confirm Beamtrace loads → authenticate MCP.
+Publisher: [Elfsight](https://elfsight.com).

@@ -1,7 +1,7 @@
 {
   "name": "beamtrace-mcp-clients",
   "private": true,
-  "description": "Beamtrace MCP client distribution packages",
+  "description": "Beamtrace Cursor plugin and MCP Registry metadata",
   "scripts": {
     "validate": "node scripts/validate-template.mjs",
     "prepare": "lefthook install || true",
