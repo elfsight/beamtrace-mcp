@@ -1,5 +1,5 @@
 {
-  "name": "beamtrace-mcp-clients",
+  "name": "beamtrace-mcp",
   "private": true,
   "description": "Beamtrace Cursor plugin and MCP Registry metadata",
   "scripts": {
