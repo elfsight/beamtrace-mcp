@@ -4,6 +4,7 @@
   "description": "Beamtrace Cursor plugin and MCP Registry metadata",
   "scripts": {
     "validate": "node scripts/validate-template.mjs",
+    "release": "node scripts/publish.mjs",
     "prepare": "lefthook install || true",
     "registry:validate": "mcp-publisher validate",
     "registry:login:dns": "mcp-publisher login dns --domain beamtrace.com",
