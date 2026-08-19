@@ -9,16 +9,11 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
-const warnings = [];
 
 const pluginNamePattern = /^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
 
 function addError(message) {
   errors.push(message);
-}
-
-function addWarning(message) {
-  warnings.push(message);
 }
 
 async function pathExists(filePath) {
@@ -132,6 +127,96 @@ async function validateFrontmatterFile(filePath, componentName, requiredKeys) {
   }
 }
 
+const allowedMcpTransports = new Set(["http", "sse", "streamable-http"]);
+
+function collectMcpServerEntries(mcpConfig) {
+  if (!mcpConfig || typeof mcpConfig !== "object" || Array.isArray(mcpConfig)) {
+    return [];
+  }
+  if (mcpConfig.mcpServers && typeof mcpConfig.mcpServers === "object") {
+    return Object.entries(mcpConfig.mcpServers);
+  }
+  return Object.entries(mcpConfig);
+}
+
+function validateMcpJson(mcpConfig) {
+  const entries = collectMcpServerEntries(mcpConfig);
+  if (entries.length === 0) {
+    addError("mcp.json must define at least one MCP server entry.");
+    return [];
+  }
+
+  const urls = [];
+  for (const [serverName, serverConfig] of entries) {
+    if (!serverConfig || typeof serverConfig !== "object" || Array.isArray(serverConfig)) {
+      addError(`mcp.json server "${serverName}" must be an object.`);
+      continue;
+    }
+    const url = serverConfig.url;
+    if (typeof url !== "string" || !/^https:\/\/\S+$/.test(url)) {
+      addError(`mcp.json server "${serverName}" needs an https "url".`);
+    } else {
+      urls.push(url);
+    }
+    const transport = serverConfig.transport ?? serverConfig.type;
+    if (transport !== undefined && !allowedMcpTransports.has(transport)) {
+      addError(
+        `mcp.json server "${serverName}" has invalid transport/type "${transport}". Use http, sse, or streamable-http.`
+      );
+    }
+  }
+  return urls;
+}
+
+function validateServerJson(serverManifest, mcpUrls) {
+  if (typeof serverManifest.name !== "string" || !/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/.test(serverManifest.name)) {
+    addError('server.json "name" must be reverse-DNS with a single "/" (e.g. com.beamtrace/mcp).');
+  }
+  if (typeof serverManifest.version !== "string" || serverManifest.version.length === 0) {
+    addError('server.json "version" is required.');
+  }
+  if (typeof serverManifest.description !== "string" || serverManifest.description.length === 0) {
+    addError('server.json "description" is required.');
+  } else if (serverManifest.description.length > 100) {
+    addError(
+      `server.json "description" is ${serverManifest.description.length} chars; MCP Registry max is 100.`
+    );
+  }
+  if (typeof serverManifest.title === "string" && serverManifest.title.length > 100) {
+    addError(`server.json "title" is ${serverManifest.title.length} chars; max is 100.`);
+  }
+
+  const remotes = serverManifest.remotes;
+  if (!Array.isArray(remotes) || remotes.length === 0) {
+    addError('server.json must include a non-empty "remotes" array for remote-only packaging.');
+    return;
+  }
+
+  const remoteUrls = [];
+  for (const [index, remote] of remotes.entries()) {
+    if (!remote || typeof remote !== "object") {
+      addError(`server.json remotes[${index}] must be an object.`);
+      continue;
+    }
+    if (remote.type !== "streamable-http" && remote.type !== "sse") {
+      addError(`server.json remotes[${index}].type must be "streamable-http" or "sse".`);
+    }
+    if (typeof remote.url !== "string" || !/^https:\/\/\S+$/.test(remote.url)) {
+      addError(`server.json remotes[${index}] needs an https "url".`);
+    } else {
+      remoteUrls.push(remote.url);
+    }
+  }
+
+  if (mcpUrls.length > 0 && remoteUrls.length > 0) {
+    const mcpSet = new Set(mcpUrls);
+    const overlap = remoteUrls.some((url) => mcpSet.has(url));
+    if (!overlap) {
+      addError("mcp.json URL(s) do not match any server.json remotes[].url.");
+    }
+  }
+}
+
 async function main() {
   const manifestPath = path.join(repoRoot, ".cursor-plugin", "plugin.json");
   const pluginManifest = await readJsonFile(manifestPath, "Plugin manifest");
@@ -142,6 +227,10 @@ async function main() {
 
   if (typeof pluginManifest.name !== "string" || !pluginNamePattern.test(pluginManifest.name)) {
     addError('"name" in plugin.json must be lowercase and use only alphanumerics, hyphens, and periods.');
+  }
+
+  if (pluginManifest.license === "MIT" && !(await pathExists(path.join(repoRoot, "LICENSE")))) {
+    addError('plugin.json claims "MIT" but LICENSE file is missing.');
   }
 
   for (const field of ["logo", "rules", "skills", "agents", "commands", "hooks", "mcpServers"]) {
@@ -169,8 +258,34 @@ async function main() {
     }
   }
 
-  if (!(await pathExists(path.join(repoRoot, "mcp.json")))) {
-    addWarning("no mcp.json file found (only needed when using MCP servers).");
+  const agentsDir = path.join(repoRoot, "agents");
+  if (await pathExists(agentsDir)) {
+    for (const file of await walkFiles(agentsDir)) {
+      const ext = path.extname(file).toLowerCase();
+      if (ext === ".md" || ext === ".mdc" || ext === ".markdown") {
+        await validateFrontmatterFile(file, "agent", ["name", "description"]);
+      }
+    }
+  }
+
+  const commandsDir = path.join(repoRoot, "commands");
+  if (await pathExists(commandsDir)) {
+    for (const file of await walkFiles(commandsDir)) {
+      const ext = path.extname(file).toLowerCase();
+      if (ext === ".md" || ext === ".mdc" || ext === ".markdown") {
+        await validateFrontmatterFile(file, "command", ["name", "description"]);
+      }
+    }
+  }
+
+  const mcpPath = path.join(repoRoot, "mcp.json");
+  const mcpConfig = await readJsonFile(mcpPath, "mcp.json");
+  const mcpUrls = mcpConfig ? validateMcpJson(mcpConfig) : [];
+
+  const serverPath = path.join(repoRoot, "server.json");
+  const serverManifest = await readJsonFile(serverPath, "server.json");
+  if (serverManifest) {
+    validateServerJson(serverManifest, mcpUrls);
   }
 
   if (await pathExists(path.join(repoRoot, ".cursor-plugin", "marketplace.json"))) {
@@ -183,11 +298,6 @@ async function main() {
 }
 
 function summarizeAndExit() {
-  if (warnings.length > 0) {
-    console.log("Warnings:");
-    for (const warning of warnings) console.log(`- ${warning}`);
-    console.log("");
-  }
   if (errors.length > 0) {
     console.error("Validation failed:");
     for (const error of errors) console.error(`- ${error}`);

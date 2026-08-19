@@ -39,10 +39,13 @@ Reload Cursor → Customize → confirm Beamtrace loads → authenticate MCP.
 
 Install [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) (`brew install mcp-publisher`).
 
-Namespace `com.beamtrace/mcp` needs **domain auth** for `beamtrace.com` ([docs](https://modelcontextprotocol.io/registry/authentication)):
+Namespace `com.beamtrace/mcp` needs **domain auth** for `beamtrace.com` ([docs](https://modelcontextprotocol.io/registry/authentication)). Use `pnpm registry:login:github` only for GitHub-owned namespaces.
+
+Keep `server.json` `version` aligned with the live MCP `serverInfo.version` when you publish.
 
 ```bash
 pnpm registry:login:dns   # or registry:login:http
+pnpm validate             # also checks server.json description ≤100 chars
 pnpm registry:validate
 pnpm registry:publish
 ```
