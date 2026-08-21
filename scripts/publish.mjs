@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Interactive release: pick Cursor / MCP Registry / all, then semver bump.
+ * Interactive release: pick Cursor / MCP Registry / all, then semver bump or --version.
  * Cursor → bump plugin.json only. MCP → bump server.json + mcp-publisher publish.
  */
 import { spawnSync } from "node:child_process";
@@ -23,21 +23,28 @@ const TARGETS = [
 const BUMPS = ["patch", "minor", "major"];
 
 function usage() {
-  console.log(`Usage: node scripts/publish.mjs [--target cursor|mcp|all] [--bump patch|minor|major] [--yes]
+  console.log(`Usage: node scripts/publish.mjs [--target cursor|mcp|all] [--bump patch|minor|major | --version x.y.z] [--yes]
 
 Interactive by default. Cursor only bumps .cursor-plugin/plugin.json.
 MCP bumps server.json, validates, then runs mcp-publisher publish.
+--version sets both selected files to that version (optional v prefix).
 `);
 }
 
-function bumpSemver(version, bump) {
-  const match = /^(\d+)\.(\d+)\.(\d+)(?:-.*)?$/.exec(version);
+function parseSemver(version) {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-.*)?$/.exec(version);
   if (!match) {
     throw new Error(`Unsupported version "${version}". Expected x.y.z`);
   }
-  let major = Number(match[1]);
-  let minor = Number(match[2]);
-  let patch = Number(match[3]);
+  return { major: Number(match[1]), minor: Number(match[2]), patch: Number(match[3]) };
+}
+
+function formatSemver({ major, minor, patch }) {
+  return `${major}.${minor}.${patch}`;
+}
+
+function bumpSemver(version, bump) {
+  let { major, minor, patch } = parseSemver(version);
   if (bump === "major") {
     major += 1;
     minor = 0;
@@ -48,7 +55,14 @@ function bumpSemver(version, bump) {
   } else {
     patch += 1;
   }
-  return `${major}.${minor}.${patch}`;
+  return formatSemver({ major, minor, patch });
+}
+
+function resolveToVersion(from, bump, explicitVersion) {
+  if (explicitVersion) {
+    return formatSemver(parseSemver(explicitVersion));
+  }
+  return bumpSemver(from, bump);
 }
 
 async function readJson(filePath) {
@@ -119,6 +133,7 @@ async function main() {
     options: {
       target: { type: "string" },
       bump: { type: "string" },
+      version: { type: "string" },
       yes: { type: "boolean", default: false },
       help: { type: "boolean", default: false },
     },
@@ -132,17 +147,25 @@ async function main() {
 
   let target = resolveTarget(values.target);
   let bump = values.bump ?? null;
+  let explicitVersion = values.version ?? null;
 
   if (values.target && !target) {
     console.error(`Invalid --target "${values.target}". Use: cursor, mcp, all`);
+    process.exit(1);
+  }
+  if (bump && explicitVersion) {
+    console.error("Use either --bump or --version, not both");
     process.exit(1);
   }
   if (bump && !BUMPS.includes(bump)) {
     console.error(`Invalid --bump "${bump}". Use: ${BUMPS.join(", ")}`);
     process.exit(1);
   }
+  if (explicitVersion) {
+    explicitVersion = formatSemver(parseSemver(explicitVersion));
+  }
 
-  const needsPrompt = !target || !bump || !values.yes;
+  const needsPrompt = !target || (!bump && !explicitVersion) || !values.yes;
   const rl = needsPrompt
     ? readline.createInterface({ input: process.stdin, output: process.stdout })
     : null;
@@ -156,7 +179,7 @@ async function main() {
       );
       target = resolveTarget(label);
     }
-    if (!bump) {
+    if (!bump && !explicitVersion) {
       bump = await choose(rl, "Semver bump?", BUMPS);
     }
 
@@ -169,7 +192,7 @@ async function main() {
         kind: "cursor",
         label: "Cursor plugin.json",
         from: plugin.version,
-        to: bumpSemver(plugin.version, bump),
+        to: resolveToVersion(plugin.version, bump, explicitVersion),
       });
     }
     if (target === "mcp" || target === "all") {
@@ -177,7 +200,7 @@ async function main() {
         kind: "mcp",
         label: "MCP server.json",
         from: server.version,
-        to: bumpSemver(server.version, bump),
+        to: resolveToVersion(server.version, bump, explicitVersion),
       });
     }
 
