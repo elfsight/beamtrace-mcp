@@ -37,35 +37,39 @@ Reload Cursor → Customize → confirm Beamtrace loads → authenticate MCP.
 
 ## Release
 
-Interactive bump (+ MCP publish when selected):
+Pushing a `v*` tag (for example `v1.0.1`) runs [.github/workflows/publish-mcp.yml](.github/workflows/publish-mcp.yml). It logs in with HTTP domain auth, then:
+
+```bash
+node scripts/publish.mjs --target all --version "$GITHUB_REF_NAME" --yes
+```
+
+That sets `.cursor-plugin/plugin.json` and `server.json` to the tag version (`v` prefix is stripped) and publishes to the MCP Registry. The workflow does not commit those files back — bump and commit versions on `main` if you want git to match the tag.
+
+Add repository secret `MCP_PRIVATE_KEY`: the 64-character hex private key used with `mcp-publisher login http` (not the PEM file).
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+Local / interactive (install [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) first):
 
 ```bash
 pnpm release
 ```
 
-Pick **cursor** / **mcp registry** / **all**, then **patch** / **minor** / **major**. Cursor only bumps `.cursor-plugin/plugin.json`. MCP also runs `mcp-publisher publish`.
-
-Non-interactive:
+Pick **cursor** / **mcp registry** / **all**, then **patch** / **minor** / **major**, or pass `--version`. Cursor only bumps `.cursor-plugin/plugin.json`. MCP also runs `mcp-publisher publish`.
 
 ```bash
 pnpm release -- --target cursor --bump patch --yes
 pnpm release -- --target mcp --bump minor --yes
 pnpm release -- --target all --bump patch --yes
+pnpm release -- --target all --version 1.0.1 --yes
 ```
 
-## MCP Registry
+Namespace `com.beamtrace/mcp` needs domain auth for `beamtrace.com` ([docs](https://modelcontextprotocol.io/registry/authentication)). Local login: `pnpm registry:login:http`. Use `pnpm registry:login:github` only for GitHub-owned namespaces.
 
-Install [`mcp-publisher`](https://github.com/modelcontextprotocol/registry/releases) (`brew install mcp-publisher`).
-
-Namespace `com.beamtrace/mcp` needs **domain auth** for `beamtrace.com` ([docs](https://modelcontextprotocol.io/registry/authentication)). Use `pnpm registry:login:github` only for GitHub-owned namespaces.
-
-Keep `server.json` `version` aligned with the live MCP `serverInfo.version` when you publish (or use `pnpm release` and choose mcp/all).
-
-```bash
-pnpm registry:login:dns   # or registry:login:http
-pnpm validate             # also checks server.json description ≤100 chars
-pnpm release              # or: pnpm registry:validate && pnpm registry:publish
-```
+Keep `server.json` version aligned with the live MCP `serverInfo.version` when you publish.
 
 ## Auth
 
