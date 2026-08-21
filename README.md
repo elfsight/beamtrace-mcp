@@ -43,7 +43,7 @@ Pushing a `v*` tag (for example `v1.0.1`) runs [.github/workflows/publish-mcp.ym
 node scripts/publish.mjs --target all --version "$GITHUB_REF_NAME" --yes
 ```
 
-That sets `.cursor-plugin/plugin.json` and `server.json` to the tag version (`v` prefix is stripped) and publishes to the MCP Registry. The workflow does not commit those files back — bump and commit versions on `main` if you want git to match the tag.
+That sets `.cursor-plugin/plugin.json` and `server.json` to the tag version (`v` prefix is stripped), publishes to the MCP Registry, then commits those files to the default branch if they changed. The tag itself stays on the original commit.
 
 Add repository secret `MCP_PRIVATE_KEY`: the 64-character hex private key used with `mcp-publisher login http` (not the PEM file).
 
